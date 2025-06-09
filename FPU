@@ -1,0 +1,300 @@
+// y = ax^3 + bx^2 + cx + d
+void _01(double a, double b, double c, double d, double x) {
+	cout << "Zad 1. y = ax^3 + bx^2 + cx + d" << endl;
+	double yCpp = example_01(a, b, c, d, x), yASM;
+	__asm {
+		fld d;				// d
+		fld x;				// x, d
+		fld st;				// x, x, d
+		fmul st, st(1);		// xx, x, d
+		fld st;				// xx, xx, x, d
+		fmul st, st(2);		// xxx, xx, x, d
+		fmul a;				// axxx, xx, x, d
+		faddp st(3), st;	// xx, x, axxx+d
+		fmul b;				// bxx, x, axxx+d
+		faddp st(2), st;	// x, axxx+bxx+d
+		fmul c;				// cx, axxx+bxx+d
+		faddp st(1), st;	// axxx+bxx+cx+d
+		fstp yASM;
+	}
+
+	cout << "[C++]: " << yCpp << endl;
+	cout << "[ASM]: " << yASM << endl;
+}
+// y = log2(1 + a * x)^2
+void _02(double a, double x) {
+	cout << "Zad 2. y = log2(1 + a * x)^2" << endl;
+	double yCpp = example_02(a, x), yASM;
+	__asm {
+		fld1;				// 1
+		fld x;				// x, 1
+		fmul a;				// ax, 1
+		fadd st, st(1);		// 1 + ax, 1
+		fld st;				// 1 + ax, 1 + ax, 1
+		fmul;				// (1 + ax)^2, 1
+		fyl2x;				// 1 * log(1+ax)^2
+		fstp yASM;
+	}
+
+	cout << "[C++]: " << yCpp << endl;
+	cout << "[ASM]: " << yASM << endl;
+}
+// Iloczyn skalarny dwoch vectorow
+void _03() {
+	cout << "Zad 3. Iloczyn skalarny dwoch vectorow" << endl;
+	const unsigned int n = 5;
+	double* a = newFillPtr<double>(n), * b = newFillPtr<double>(n);
+	double yCpp = example_03(a, b, n), yAsm=0;
+	cout << "a: ";
+	printPtr(a, n);
+	cout << "b: ";
+	printPtr(b, n);
+
+	__asm {
+		pushad
+		pushfd
+
+		mov esi, dword ptr[a];
+		mov edi, dword ptr[b];
+		mov ecx, n;
+		fldz;						// sum = 0
+	_loop:
+		fld qword ptr[esi + 8 * ecx - 8];	// a[i], sum
+		fld qword ptr[edi + 8 * ecx - 8];	// b[i], a[i], sum
+		fmulp st(1), st;					// a[i]*b[i], sum
+		fadd;								// sum
+		dec ecx;
+		jnz _loop;
+
+		fstp yAsm
+
+		popfd
+		popad
+	}
+
+	cout << "[C++]: " << yCpp << endl;
+	cout << "[ASM]: " << yAsm << endl;
+	freePtr(a);
+	freePtr(b);
+}
+// b^2 - 4ac
+void c_01(double a, double b, double c) {
+	cout << "Check 1. b^2 - 4ac" << endl;
+	double yCpp = check_01(a, b, c), yASM;
+	
+	__asm {
+		mov eax, 4;											// Zaladowanie 4 do eax
+		push eax;											// Wrzucienie eax na stos
+		fild[esp];				// 4						// Wyciagniecie ze stosu
+		pop eax;											// Czyszczenie stosu
+		
+		fmul a;					// 4a
+		fmul c;					// 4ac
+		fld b;					// b, 4ac
+		fmul b;					// bb, 4ac
+		fsub st, st(1);			// bb - 4ac
+		fstp yASM;
+	}
+
+	cout << "[C++]: " << yCpp << endl;
+	cout << "[ASM]: " << yASM << endl;
+}
+// c * (a + b) / 2.0
+void c_02(double a, double b, double c) {
+	cout << "Check 2. c * (a + b) / 2.0" << endl;
+	double yCpp = check_02(a, b, c), yASM;
+
+	__asm {
+		fld a;
+		fadd b;				// a+b
+		fmul c;				// c*(a+b)
+		fld1;				// 1, c*(a+b)
+		fadd st(0), st(0);	// 2.0, c*(a+b)
+		fdiv st(1), st(0);		// c*(a+b)/2.0
+		fstp st(0);
+		fstp yASM;
+	}
+	cout << "[C++]: " << yCpp << endl;
+	cout << "[ASM]: " << yASM << endl;
+}
+// 4*(a+b)^3 - 2*(a+c)^2
+void c_03(double a, double b, double c) {
+	cout << "Check 3. 4*(a+b)^3 - 2*(a+c)^2" << endl;
+	double yCpp = check_03(a, b, c), yASM;
+	__asm {
+		fld a;
+		fadd c;
+		fld st(0);
+		fmul;			// (a+c)^2
+		fld st(0);		
+		fadd;			// 2(a+c)^2
+
+		fld a;
+		fadd b;
+		fld st(0);
+		fld st(0);
+		fmul;
+		fmul;			// (a+b)^3
+		fld st(0);
+		fadd;
+		fld st(0);
+		fadd;
+
+		fsub st(0), st(1);
+		fstp yASM;
+
+
+	}
+	cout << "[C++]: " << yCpp << endl;
+	cout << "[ASM]: " << yASM << endl;
+}
+// (1+(1/a)^2 + sqrt(abs((1/b)^3)))^2
+void c_04(double a, double b) {
+	cout << "Check 4. (1+(1/a)^2 + sqrt(abs((1/b)^3)))^2" << endl;
+	double yCpp = check_04(a, b), yASM;
+	__asm {
+		
+		fld1;			// 1
+		fld b;			// b, 1
+		fdiv;			// 1/b
+		fabs;			// |1/b|
+		fld st(0);		// |1/b|, |1/b|
+		fld st(0);		// |1/b|, |1/b|, |1/b|;
+		fmul;
+		fmul;			// (|1/b|)^3
+		fsqrt;			// sqrt(abs((|1/b|)^3))
+
+		fld1;			// 1, sqrt(abs((|1/b|)^3))
+		fld a;			// a, 1, sqrt(abs((|1/b|)^3))
+		fdiv;			// 1/a, sqrt(abs((|1/b|)^3))
+		fld st(0);		// 1/a, 1/a, sqrt(abs((|1/b|)^3))
+		fmul;			// (1/a)^2, sqrt(abs((|1/b|)^3))
+		fld1;			// 1, (1/a)^2, sqrt(abs((|1/b|)^3))
+		fadd;
+		fadd;
+		fmul st(0), st(0);
+		fstp yASM;
+	} 
+
+
+	cout << "[C++]: " << yCpp << endl;
+	cout << "[ASM]: " << yASM << endl;
+}
+// (sin(a*pi/180))^3 - cos((b*pi/180)^2)
+void c_05(double a, double b) {
+	cout << "Check 5. (sin(a*pi/180))^3 - cos((b*pi/180)^2)" << endl;
+	double yCpp = check_05(a, b), yASM;
+	__asm {
+		mov eax, 180;
+		push eax;
+		fild[esp];
+		pop eax;			// 180,
+		fld st(0);
+
+		fld a;				// a, 180, 180
+		fldpi
+		fmul;			// a*pi, 180, 180
+		fdiv st(0), st(1);	// a*pi/180, 180
+		fsin;
+		fld st(0);
+		fld st(0);
+		fmul;
+		fmul;				// (sin(a*pi/180))^3, 180
+		fld b;
+		fldpi;
+		fmul;
+		fdiv st(0), st(2);
+		fld st(0);
+		fmul;
+		fcos
+		fsubp st(1), st(0);
+		fstp yASM;
+	}
+	cout << "[C++]: " << yCpp << endl;
+	cout << "[ASM]: " << yASM << endl;
+}
+// a^x
+void c_potega(double a, double x) {
+	cout << "a^x" << endl;
+	double yCpp = check_potega(a, x), yASM;
+	__asm {
+		fld x;				// st(0) = x
+		fld a;				// st(0) = a, st(1) = x
+		fyl2x;				// st(0) = x * log2(a)
+
+		//; Teraz chcemy policzyć 2 ^ st(0)
+		fld st(0);			// duplikuj wynik
+		frndint;			// zaokrąglij do całkowitej(część całkowita wykładnika)
+		fsub st(1), st(0);	// st(1) = mantysa(x - floor(x))
+		fxch st(1);			// zamień mantysę i całkowitą
+		f2xm1;				// oblicz 2 ^ (mantysa)-1
+		fld1
+		faddp st(1), st(0); // dodaj 1 → 2 ^ mantysa
+		fscale;				// przemnożenie przez 2 ^ floor(x)
+		fstp st(1);			// wyczyść stos(część całkowita)
+		fstp yASM;			// wynik do zmiennej
+	}
+	cout << "[C++]: " << yCpp << endl;
+	cout << "[ASM]: " << yASM << endl;
+}
+
+// 1/e^(-a*x)
+void zad1_k(double a, double x) {
+	cout << "1/e^(-a*x)" << endl;
+	double yCpp = z1(a, x), yASM;
+	__asm {
+		fld a;				// a
+		fmul x;				// ax
+		fldl2e;				// log2(e), ax
+		fmulp st(1), st(0);	// a*x*log2(e)
+		fld st(0);			// a*x*log2(e), a*x*log2(e)
+		frndint;			// część całkowita axlog2(e), axlog2(e)
+		fsub st(1), st(0);	// int(z), frac(z)
+		fxch;				// frac(z), int(z)
+		f2xm1;				// 2^frac(z) - 1, int(z)
+		fld1;				// 1, 2^frac(z) - 1, int(z)
+		faddp st(1), st(0);	// 2^frac(z), int(z)
+		fscale;				// 2^int(z) * 2^frac(z) = 2^z = e^(a*x)
+		fstp yASM;
+	}
+	cout << "[C++]: " << yCpp << endl;
+	cout << "[ASM]: " << yASM << endl;
+}
+// 4sin^3(a) - 2cos^2(b)
+void zad3_k(double a, double b) {
+	cout << "4sin^3(a) - 2cos^2(b)" << endl;
+	double yCpp = z3(a, b), yASM;
+	__asm {
+		mov eax, 180;
+		push eax;
+		fild[esp];
+		pop eax;
+		fld st(0);			// 180,180
+		fld b;
+		fldpi;				// pi, b, 180, 180
+		fmul;				// pi*b, 180, 180
+		fdiv st(0), st(1);	// (pi*b)/180, 180
+		fcos;				// cos(b), 180
+		fld st(0);
+		fmul;				// cos^2(b), 180
+		fld st(0);
+		fadd;				// 2cos^2(b), 180
+		fldpi;
+		fmul a;				// a*pi, 2cos^2(b), 180
+		fdiv st(0), st(2);	
+		fsin;				// sin(a), 2cos^2(b)
+		fld st(0);
+		fld st(0);
+		fmul;
+		fmul;				// sin^3(a), 2cos^2(b)
+		fld st(0);
+		fadd;				// 2sin^3(a), 2cos^2(b)
+		fld st(0);			
+		fadd;				// 4sin^3(a), 2cos^2(b)
+		fsub st(0), st(1);
+		fstp yASM;
+	}
+
+	cout << "[C++]: " << yCpp << endl;
+	cout << "[ASM]: " << yASM << endl;
+}
